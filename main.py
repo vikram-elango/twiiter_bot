@@ -3,6 +3,9 @@ import time
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+import requests
+
+
 
 
 
@@ -20,20 +23,28 @@ service = Service("C:\ChromeWebDriver\chromedriver.exe")
 class InternetSpeedTwitterBot:
     def __init__(self,driver):
         self.driver = webdriver.Chrome(service=Service(), options=options)
-        self.up=0
-        self.down=0
+        self.lat=0
+        self.lng=0
+        self.min=0
+        self.max=0
+    def coordinates(self):
+        KEY = 'your_key'
+        city = "your_city"
+        state = "your_state"
+        url = f'http://www.mapquestapi.com/geocoding/v1/address?key={KEY}&location={city},{state}'
 
+        response = requests.get(url)
+        data = response.json()
+        print(data['results'][0]['locations'][0]['displayLatLng'])
+        self.lat=float(data['results'][0]['locations'][0]['displayLatLng']['lat'])
+        self.lng=float(data['results'][0]['locations'][0]['displayLatLng']['lng'])
 
-    def get_internet_speed(self):
-        self.driver.get("https://www.speedtest.net/")
-        self.events=self.driver.find_element(By.XPATH,"//*[@id='container']/div/div[3]/div/div/div/div[2]/div[3]/div[1]/a/span[4]")
-        self.events.click()
-        time.sleep(45)
-        self.down=self.driver.find_element(By.XPATH,'//*[@id="container"]/div/div[3]/div/div/div/div[2]/div[3]/div[3]/div/div[3]/div/div/div[2]/div[1]/div[1]/div/div[2]/span').text
-        self.up=self.driver.find_element(By.XPATH,'//*[@id="container"]/div/div[3]/div/div/div/div[2]/div[3]/div[3]/div/div[3]/div/div/div[2]/div[1]/div[2]/div/div[2]/span').text
-        print(self.down,self.up)
-
-
+    def weather(self):
+        appid = "your_id"
+        response = requests.get(f'https://api.openweathermap.org/data/2.5/weather?lat={self.lat}&lon={self.lng}&appid={appid}')
+        data = response.json()
+        self.min = round((data['main']['temp_min'] - 273.15) * (9 / 5) + 32)
+        self.max = round((data['main']['temp_max'] - 273.15) * (9 / 5) + 32)
 
     def tweet_at_provider(self):
         self.driver.get("https://twitter.com/i/flow/login")
@@ -56,7 +67,9 @@ class InternetSpeedTwitterBot:
         events.click()
         time.sleep(1)
         events=self.driver.find_element(By.XPATH,'//*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div/div[3]/div[2]/div[1]/div/div/div/div/div[2]/div[1]/div/div/div/div/div/div[2]/div/div/div/div/label/div[1]/div/div/div/div/div/div[2]/div/div/div/div')
-        events.send_keys(f"My current download speed is: {self.down} and upload speed is: {self.up} ")
+        events.send_keys(f"The lowest temperature for today is: {self.min} F\n"
+                         f"The highest temperature for today is: {self.max} F\n"
+                         f"--tweeted by @twitter_bot--")
         time.sleep(2)
         events=self.driver.find_element(By.XPATH,'//*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div/div[3]/div[2]/div[1]/div/div/div/div/div[2]/div[3]/div/div/div[2]/div[4]')
         events.click()
@@ -66,5 +79,6 @@ class InternetSpeedTwitterBot:
 
 
 bot=InternetSpeedTwitterBot(CHROME_DRIVER_PATH)
-bot.get_internet_speed()
+bot.coordinates()
+bot.weather()
 bot.tweet_at_provider()
